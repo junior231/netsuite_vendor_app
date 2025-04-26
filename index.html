@@ -55,14 +55,19 @@
       }
 
       function FormWrapper({ title, children, onContinue, onBack, showBack, step, totalSteps }) {
+        const isFinalStep = step === totalSteps - 1;
         return (
           <div className="bg-white p-6 rounded-2xl shadow w-[720px] space-y-4">
             <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">{title}</h2>
             <div className="text-sm text-center text-gray-500 mb-4">Step {step + 1} of {totalSteps}</div>
             <div className="space-y-4">{children}</div>
             <div className="flex justify-between pt-4">
-              {showBack ? <button onClick={onBack} className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">Back</button> : <div></div>}
-              <button onClick={onContinue} className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-indigo-600 transition">Continue</button>
+              {showBack ? <button onClick={onBack} className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition flex items-center">
+                  <span className="mr-2">←</span> Back
+                </button> : <div></div>}
+              <button onClick={onContinue} className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-indigo-600 transition">
+                {isFinalStep ? 'Submit' : 'Continue'}
+              </button>
             </div>
           </div>
         );
@@ -71,12 +76,23 @@
       function App() {
         const [step, setStep] = React.useState(0);
         const [formValues, setFormValues] = React.useState({});
+        const [userName, setUserName] = React.useState("Frank");
+
+        // const handleBack = () => {
+        //   const stepKeys = ["bankAccount", "documents", "billingAddress", "bankAddress"];
+        //   const updated = Object.keys(formValues)
+        //     .filter((key) => stepKeys.indexOf(key) < step - 1)
+        //     .reduce((acc, key) => ({ ...acc, [key]: formValues[key] }), {});
+        //   setFormValues(updated);
+        //   setStep((prev) => Math.max(prev - 1, 0));
+        // };
 
         const handleBack = () => {
-          const stepKeys = ["bankAccount", "documents", "billingAddress", "bankAddress"];
-          const updated = Object.keys(formValues)
-            .filter((key) => stepKeys.indexOf(key) < step - 1)
-            .reduce((acc, key) => ({ ...acc, [key]: formValues[key] }), {});
+          const updated = {};
+          for (let i = 0; i < step - 1; i++) {
+            const key = stepKeys[i];
+            if (formValues[key]) updated[key] = formValues[key];
+          }
           setFormValues(updated);
           setStep((prev) => Math.max(prev - 1, 0));
         };
@@ -110,7 +126,7 @@
         return (
           <div className="w-full max-w-3xl mx-auto">
             <div className="mb-6 text-center">
-              <h1 className="text-2xl font-bold text-gray-800">Welcome John, please enter your details</h1>
+              <h1 className="text-2xl font-bold text-gray-800">Welcome {userName}, please enter your details</h1>
             </div>
             <div className="flex items-center justify-center">{renderStep()}</div>
           </div>
