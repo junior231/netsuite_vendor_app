@@ -1,0 +1,30 @@
+{
+  "userData": {
+    "name": "Frank Ocean",
+    "email": "frank@example.com",
+    "paymentMethod": "NEFT",
+    "primaryId": "000123456",
+    "receivingAccount": "987654321",
+    "secondaryRouting": "1122334455",
+    "secondaryAccount": "99887766",
+    "paymentPurpose": "Refunds",
+    "w9": "https://example.com/w9.pdf",
+    "check": "https://example.com/check.png",
+    "doc1": "https://example.com/doc1.pdf",
+    "doc2": "https://example.com/doc2.pdf",
+    "vendorName": "AddCore Software Corp",
+    "phone": "416-123-4567",
+    "address1": "123 Queen Street",
+    "address2": "Suite 400",
+    "city": "Toronto",
+    "zip": "M5H 2N2",
+    "state": "Ontario",
+    "country": "Canada",
+    "bankName": "Scotiabank",
+    "bankAddress1": "44 King Street West",
+    "bankCity": "Toronto",
+    "bankState": "Ontario",
+    "bankCountry": "Canada",
+    "bankZip": "M5H 1H1"
+  }
+}

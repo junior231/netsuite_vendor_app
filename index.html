@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Step-by-Step Forms</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -10,7 +10,7 @@
         theme: {
           extend: {
             colors: {
-              primary: '#6366f1',
+              primary: "#6366f1",
             },
           },
         },
@@ -26,18 +26,56 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-      function InputField({ label, name, value, onChange, disabled = false }) {
+      function Field({
+        label,
+        name,
+        type = "text",
+        value = "",
+        onChange,
+        disabled = false,
+        options = [],
+        placeholder = "",
+        rows = 4,
+      }) {
+        const sharedProps = {
+          name,
+          id: name,
+          value: value ?? "",
+          onChange,
+          disabled,
+          className:
+            "w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100",
+        };
+
         return (
           <div className="w-full">
-            <label className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
-            <input
-              type="text"
-              name={name}
-              value={value}
-              onChange={onChange}
-              disabled={disabled}
-              className="w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100"
-            />
+            <label
+              htmlFor={name}
+              className="block text-sm font-medium text-gray-600 mb-1"
+            >
+              {label}
+            </label>
+
+            {type === "textarea" ? (
+              <textarea
+                {...sharedProps}
+                rows={rows}
+                placeholder={placeholder}
+              />
+            ) : type === "select" ? (
+              <select {...sharedProps}>
+                <option value="" disabled>
+                  {placeholder || "-- Select an option --"}
+                </option>
+                {options.map((opt, i) => (
+                  <option key={i} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input type={type} {...sharedProps} placeholder={placeholder} />
+            )}
           </div>
         );
       }
@@ -48,76 +86,417 @@
         };
         return (
           <div className="space-y-2 w-full">
-            <label className="block text-sm font-medium text-gray-600">{label}</label>
-            <button onClick={handleUploadClick} className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition w-full">Upload</button>
+            <label className="block text-sm font-medium text-gray-600">
+              {label}
+            </label>
+            <button
+              onClick={handleUploadClick}
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition w-full"
+            >
+              Upload
+            </button>
           </div>
         );
       }
 
-      function FormWrapper({ title, children, onContinue, onBack, showBack, step, totalSteps }) {
+      function FormWrapper({
+        title,
+        children,
+        onContinue,
+        onBack,
+        showBack,
+        step,
+        totalSteps,
+      }) {
         const isFinalStep = step === totalSteps - 1;
         return (
           <div className="bg-white p-6 rounded-2xl shadow w-[720px] space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">{title}</h2>
-            <div className="text-sm text-center text-gray-500 mb-4">Step {step + 1} of {totalSteps}</div>
+            <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">
+              {title}
+            </h2>
+            <div className="text-sm text-center text-gray-500 mb-4">
+              Step {step + 1} of {totalSteps}
+            </div>
             <div className="space-y-4">{children}</div>
             <div className="flex justify-between pt-4">
-              {showBack ? <button onClick={onBack} className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition flex items-center">
+              {showBack ? (
+                <button
+                  onClick={onBack}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition flex items-center"
+                >
                   <span className="mr-2">←</span> Back
-                </button> : <div></div>}
-              <button onClick={onContinue} className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-indigo-600 transition">
-                {isFinalStep ? 'Submit' : 'Continue'}
+                </button>
+              ) : (
+                <div></div>
+              )}
+              <button
+                onClick={onContinue}
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-indigo-600 transition"
+              >
+                {isFinalStep ? "Submit" : "Continue"}
               </button>
             </div>
           </div>
         );
       }
 
+      function BankAccountForm({
+        initialValues,
+        onContinue,
+        step,
+        totalSteps,
+      }) {
+        const [formData, setFormData] = React.useState(initialValues || {});
+        const handleChange = (e) => {
+          const { name, value } = e.target;
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        };
+
+        return (
+          <FormWrapper
+            title="BANK ACCOUNT INFORMATION"
+            onContinue={() => onContinue(formData)}
+            step={step}
+            totalSteps={totalSteps}
+          >
+            <Field
+              label="Email Address"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled
+            />
+            <Field
+              label="Payment Method"
+              name="paymentMethod"
+              value={formData.paymentMethod}
+              onChange={handleChange}
+              disabled
+            />
+            <Field
+              label="Receiving Bank Primary ID"
+              name="primaryId"
+              value={formData.primaryId}
+              onChange={handleChange}
+            />
+            <Field
+              label="Receiving Party Account"
+              name="receivingAccount"
+              value={formData.receivingAccount}
+              onChange={handleChange}
+            />
+            <Field
+              label="Secondary Bank Routing Number"
+              name="secondaryRouting"
+              value={formData.secondaryRouting}
+              onChange={handleChange}
+            />
+            <Field
+              label="Secondary Bank Account"
+              name="secondaryAccount"
+              value={formData.secondaryAccount}
+              onChange={handleChange}
+            />
+            <Field
+              label="Payment Purpose"
+              name="paymentPurpose"
+              value={formData.paymentPurpose}
+              onChange={handleChange}
+            />
+          </FormWrapper>
+        );
+      }
+
+      function AddDocumentsForm({
+        initialValues,
+        onContinue,
+        onBack,
+        step,
+        totalSteps,
+      }) {
+        return (
+          <FormWrapper
+            title="ADD DOCUMENTS"
+            onContinue={() => onContinue(initialValues)}
+            onBack={onBack}
+            showBack
+            step={step}
+            totalSteps={totalSteps}
+          >
+            <FileUploadField
+              label="W9 Document"
+              redirectUrl={initialValues.w9}
+            />
+            <FileUploadField
+              label="Check Image"
+              redirectUrl={initialValues.check}
+            />
+            <FileUploadField
+              label="Other Document 1"
+              redirectUrl={initialValues.doc1}
+            />
+            <FileUploadField
+              label="Other Document 2"
+              redirectUrl={initialValues.doc2}
+            />
+          </FormWrapper>
+        );
+      }
+
+      function BillingAddressForm({
+        initialValues,
+        onContinue,
+        onBack,
+        step,
+        totalSteps,
+      }) {
+        const [formData, setFormData] = React.useState(initialValues || {});
+        const handleChange = (e) => {
+          const { name, value } = e.target;
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        };
+
+        return (
+          <FormWrapper
+            title="BILLING ADDRESS"
+            onContinue={() => onContinue(formData)}
+            onBack={onBack}
+            showBack
+            step={step}
+            totalSteps={totalSteps}
+          >
+            <Field
+              label="Vendor Name"
+              name="vendorName"
+              value={formData.vendorName}
+              onChange={handleChange}
+              disabled
+            />
+            <Field
+              label="Phone Number"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+            />
+            <Field
+              label="Address Line 1"
+              name="address1"
+              value={formData.address1}
+              onChange={handleChange}
+            />
+            <Field
+              label="Address Line 2"
+              name="address2"
+              value={formData.address2}
+              onChange={handleChange}
+            />
+            <Field
+              label="City"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+            />
+            <Field
+              label="ZIP CODE"
+              name="zip"
+              value={formData.zip}
+              onChange={handleChange}
+            />
+            <Field
+              label="State/Province"
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+            />
+            <Field
+              label="Country"
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+            />
+          </FormWrapper>
+        );
+      }
+
+      function BankAddressForm({
+        initialValues,
+        onContinue,
+        onBack,
+        step,
+        totalSteps,
+      }) {
+        const [formData, setFormData] = React.useState(initialValues || {});
+        const handleChange = (e) => {
+          const { name, value } = e.target;
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        };
+
+        return (
+          <FormWrapper
+            title="BANK ADDRESS"
+            onContinue={() => onContinue(formData)}
+            onBack={onBack}
+            showBack
+            step={step}
+            totalSteps={totalSteps}
+          >
+            <Field
+              label="Bank Name"
+              name="bankName"
+              value={formData.bankName}
+              onChange={handleChange}
+            />
+            <Field
+              label="Address Line 1"
+              name="address1"
+              value={formData.address1}
+              onChange={handleChange}
+            />
+            <Field
+              label="City"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+            />
+            <Field
+              label="State/Province"
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+            />
+            <Field
+              label="Country"
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+            />
+            <Field
+              label="ZIP CODE"
+              name="zip"
+              value={formData.zip}
+              onChange={handleChange}
+            />
+          </FormWrapper>
+        );
+      }
+
       function App() {
         const [step, setStep] = React.useState(0);
         const [formValues, setFormValues] = React.useState({});
-        const [userName, setUserName] = React.useState("Frank");
+        const [userData, setUserData] = React.useState(null);
 
-        // const handleBack = () => {
-        //   const stepKeys = ["bankAccount", "documents", "billingAddress", "bankAddress"];
-        //   const updated = Object.keys(formValues)
-        //     .filter((key) => stepKeys.indexOf(key) < step - 1)
-        //     .reduce((acc, key) => ({ ...acc, [key]: formValues[key] }), {});
-        //   setFormValues(updated);
-        //   setStep((prev) => Math.max(prev - 1, 0));
-        // };
+        React.useEffect(() => {
+          fetch("http://localhost:3001/userData")
+            .then((res) => res.json())
+            .then((data) => {
+              setUserData(data);
 
-        const handleBack = () => {
-          const updated = {};
-          for (let i = 0; i < step - 1; i++) {
-            const key = stepKeys[i];
-            if (formValues[key]) updated[key] = formValues[key];
-          }
-          setFormValues(updated);
-          setStep((prev) => Math.max(prev - 1, 0));
-        };
+              const initialFormValues = {
+                bankAccount: {
+                  email: data.email || "",
+                  paymentMethod: data.paymentMethod || "",
+                  primaryId: data.primaryId || "",
+                  receivingAccount: data.receivingAccount || "",
+                  secondaryRouting: data.secondaryRouting || "",
+                  secondaryAccount: data.secondaryAccount || "",
+                  paymentPurpose: data.paymentPurpose || "",
+                },
+                documents: {
+                  w9: data.w9 || "",
+                  check: data.check || "",
+                  doc1: data.doc1 || "",
+                  doc2: data.doc2 || "",
+                },
+                billingAddress: {
+                  vendorName: data.vendorName || "",
+                  phone: data.phone || "",
+                  address1: data.address1 || "",
+                  address2: data.address2 || "",
+                  city: data.city || "",
+                  zip: data.zip || "",
+                  state: data.state || "",
+                  country: data.country || "",
+                },
+                bankAddress: {
+                  bankName: data.bankName || "",
+                  address1: data.bankAddress1 || "",
+                  city: data.bankCity || "",
+                  state: data.bankState || "",
+                  country: data.bankCountry || "",
+                  zip: data.bankZip || "",
+                },
+              };
 
+              setFormValues(initialFormValues);
+            })
+            .catch((err) =>
+              console.error("Error fetching mock API data:", err)
+            );
+        }, []);
+
+        const handleBack = () => setStep((prev) => Math.max(prev - 1, 0));
         const handleContinue = (section, values) => {
           setFormValues((prev) => ({ ...prev, [section]: values }));
           setStep((prev) => prev + 1);
         };
 
+        const totalSteps = 4;
+
         const renderStep = () => {
-          const totalSteps = 4;
+          if (!userData)
+            return (
+              <p className="text-center text-gray-600">Loading user data...</p>
+            );
+
           switch (step) {
             case 0:
-              return <BankAccountForm onContinue={(data) => handleContinue("bankAccount", data)} step={step} totalSteps={totalSteps} />;
+              return (
+                <BankAccountForm
+                  initialValues={formValues.bankAccount}
+                  onContinue={(data) => handleContinue("bankAccount", data)}
+                  step={step}
+                  totalSteps={totalSteps}
+                />
+              );
             case 1:
-              return <AddDocumentsForm onContinue={(data) => handleContinue("documents", data)} onBack={handleBack} step={step} totalSteps={totalSteps} />;
+              return (
+                <AddDocumentsForm
+                  initialValues={formValues.documents}
+                  onContinue={(data) => handleContinue("documents", data)}
+                  onBack={handleBack}
+                  step={step}
+                  totalSteps={totalSteps}
+                />
+              );
             case 2:
-              return <BillingAddressForm onContinue={(data) => handleContinue("billingAddress", data)} onBack={handleBack} step={step} totalSteps={totalSteps} />;
+              return (
+                <BillingAddressForm
+                  initialValues={formValues.billingAddress}
+                  onContinue={(data) => handleContinue("billingAddress", data)}
+                  onBack={handleBack}
+                  step={step}
+                  totalSteps={totalSteps}
+                />
+              );
             case 3:
-              return <BankAddressForm onContinue={(data) => handleContinue("bankAddress", data)} onBack={handleBack} step={step} totalSteps={totalSteps} />;
+              return (
+                <BankAddressForm
+                  initialValues={formValues.bankAddress}
+                  onContinue={(data) => handleContinue("bankAddress", data)}
+                  onBack={handleBack}
+                  step={step}
+                  totalSteps={totalSteps}
+                />
+              );
             default:
               return (
                 <div className="bg-white p-6 rounded-2xl shadow w-[720px]">
-                  <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">All Done!</h2>
-                  <pre className="text-sm mt-4 bg-gray-100 p-4 rounded whitespace-pre-wrap">{JSON.stringify(formValues, null, 2)}</pre>
+                  <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">
+                    All Done!
+                  </h2>
+                  <pre className="text-sm mt-4 bg-gray-100 p-4 rounded whitespace-pre-wrap">
+                    {JSON.stringify(formValues, null, 2)}
+                  </pre>
                 </div>
               );
           }
@@ -126,115 +505,14 @@
         return (
           <div className="w-full max-w-3xl mx-auto">
             <div className="mb-6 text-center">
-              <h1 className="text-2xl font-bold text-gray-800">Welcome {userName}, please enter your details</h1>
+              <h1 className="text-2xl font-bold text-gray-800">
+                Welcome {userData?.name || "User"}, please enter your details
+              </h1>
             </div>
-            <div className="flex items-center justify-center">{renderStep()}</div>
+            <div className="flex items-center justify-center">
+              {renderStep()}
+            </div>
           </div>
-        );
-      }
-
-      function BankAccountForm({ onContinue, step, totalSteps }) {
-        const [formData, setFormData] = React.useState({
-          email: "test@addcore.io",
-          paymentMethod: "NEFT",
-          primaryId: "000305362",
-          receivingAccount: "214231231",
-          secondaryRouting: "1234567890",
-          secondaryAccount: "12345678",
-          paymentPurpose: "Debit Payments For Testing",
-        });
-
-        const handleChange = (e) => {
-          const { name, value } = e.target;
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        };
-
-        return (
-          <FormWrapper title="BANK ACCOUNT INFORMATION" onContinue={() => onContinue(formData)} step={step} totalSteps={totalSteps}>
-            <InputField label="Email Address" name="email" value={formData.email} onChange={handleChange} disabled />
-            <InputField label="Payment Method" name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} disabled />
-            <InputField label="Receiving Bank Primary ID" name="primaryId" value={formData.primaryId} onChange={handleChange} />
-            <InputField label="Receiving Party Account" name="receivingAccount" value={formData.receivingAccount} onChange={handleChange} />
-            <InputField label="Secondary Bank Routing Number" name="secondaryRouting" value={formData.secondaryRouting} onChange={handleChange} />
-            <InputField label="Secondary Bank Account" name="secondaryAccount" value={formData.secondaryAccount} onChange={handleChange} />
-            <InputField label="Payment Purpose" name="paymentPurpose" value={formData.paymentPurpose} onChange={handleChange} />
-          </FormWrapper>
-        );
-      }
-
-      function AddDocumentsForm({ onContinue, onBack, step, totalSteps }) {
-        const formData = {
-          w9: "https://example.com/document1",
-          check: "https://example.com/document2",
-          doc1: "https://example.com/document3",
-          doc2: "https://example.com/document4",
-        };
-
-        return (
-          <FormWrapper title="ADD DOCUMENTS" onContinue={() => onContinue(formData)} onBack={onBack} showBack step={step} totalSteps={totalSteps}>
-            <FileUploadField label="W9 Document" redirectUrl={formData.w9} />
-            <FileUploadField label="Check Image" redirectUrl={formData.check} />
-            <FileUploadField label="Other Document 1" redirectUrl={formData.doc1} />
-            <FileUploadField label="Other Document 2" redirectUrl={formData.doc2} />
-          </FormWrapper>
-        );
-      }
-
-      function BillingAddressForm({ onContinue, onBack, step, totalSteps }) {
-        const [formData, setFormData] = React.useState({
-          vendorName: "AddCore Software Corp",
-          phone: "213-314-4112",
-          address1: "4311 Mann Street",
-          address2: "Hamilton",
-          city: "Hamilton",
-          zip: "L2G 3K3",
-          state: "Nova Scotia",
-          country: "Canada",
-        });
-
-        const handleChange = (e) => {
-          const { name, value } = e.target;
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        };
-
-        return (
-          <FormWrapper title="BILLING ADDRESS" onContinue={() => onContinue(formData)} onBack={onBack} showBack step={step} totalSteps={totalSteps}>
-            <InputField label="Vendor Name" name="vendorName" value={formData.vendorName} onChange={handleChange} disabled />
-            <InputField label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} />
-            <InputField label="Address Line 1" name="address1" value={formData.address1} onChange={handleChange} />
-            <InputField label="Address Line 2" name="address2" value={formData.address2} onChange={handleChange} />
-            <InputField label="City" name="city" value={formData.city} onChange={handleChange} />
-            <InputField label="ZIP CODE" name="zip" value={formData.zip} onChange={handleChange} />
-            <InputField label="State/Province" name="state" value={formData.state} onChange={handleChange} />
-            <InputField label="Country" name="country" value={formData.country} onChange={handleChange} />
-          </FormWrapper>
-        );
-      }
-
-      function BankAddressForm({ onContinue, onBack, step, totalSteps }) {
-        const [formData, setFormData] = React.useState({
-          bankName: "Scotia Bank",
-          address1: "123 Main Street",
-          city: "St Catharines",
-          state: "Hamilton",
-          country: "Canada",
-          zip: "WR2 1E7",
-        });
-
-        const handleChange = (e) => {
-          const { name, value } = e.target;
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        };
-
-        return (
-          <FormWrapper title="BANK ADDRESS" onContinue={() => onContinue(formData)} onBack={onBack} showBack step={step} totalSteps={totalSteps}>
-            <InputField label="Bank Name" name="bankName" value={formData.bankName} onChange={handleChange} />
-            <InputField label="Address Line 1" name="address1" value={formData.address1} onChange={handleChange} />
-            <InputField label="City" name="city" value={formData.city} onChange={handleChange} />
-            <InputField label="State/Province" name="state" value={formData.state} onChange={handleChange} />
-            <InputField label="Country" name="country" value={formData.country} onChange={handleChange} />
-            <InputField label="ZIP CODE" name="zip" value={formData.zip} onChange={handleChange} />
-          </FormWrapper>
         );
       }
 
