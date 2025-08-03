@@ -3,8 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Step-by-Step Forms</title>
+    <title>NetSuite + React Multi-Step Form</title>
+    <script>
+      window.suiteletDataUrl = "http://localhost:3001/userData"; // Update if needed
+      window.submitUrl = "https://YOUR_SUITELET_URL_HERE"; // Replace with actual Suitelet POST endpoint
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -17,14 +24,8 @@
       };
     </script>
   </head>
-  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div id="root" class="w-full px-4 py-10"></div>
-
-    <!-- React, ReactDOM, Babel -->
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+  <body class="bg-gray-100 p-6">
+    <div id="root"></div>
     <script type="text/babel">
       function Field({
         label,
@@ -55,7 +56,6 @@
             >
               {label}
             </label>
-
             {type === "textarea" ? (
               <textarea
                 {...sharedProps}
@@ -80,25 +80,6 @@
         );
       }
 
-      function FileUploadField({ label, redirectUrl }) {
-        const handleUploadClick = () => {
-          window.location.href = redirectUrl;
-        };
-        return (
-          <div className="space-y-2 w-full">
-            <label className="block text-sm font-medium text-gray-600">
-              {label}
-            </label>
-            <button
-              onClick={handleUploadClick}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition w-full"
-            >
-              Upload
-            </button>
-          </div>
-        );
-      }
-
       function FormWrapper({
         title,
         children,
@@ -107,6 +88,8 @@
         showBack,
         step,
         totalSteps,
+        isSubmitting,
+        hideStepCount = false,
       }) {
         const isFinalStep = step === totalSteps - 1;
         return (
@@ -114,9 +97,11 @@
             <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">
               {title}
             </h2>
-            <div className="text-sm text-center text-gray-500 mb-4">
-              Step {step + 1} of {totalSteps}
-            </div>
+            {!hideStepCount && (
+              <div className="text-sm text-center text-gray-500 mb-4">
+                Step {step + 1} of {totalSteps}
+              </div>
+            )}
             <div className="space-y-4">{children}</div>
             <div className="flex justify-between pt-4">
               {showBack ? (
@@ -131,9 +116,16 @@
               )}
               <button
                 onClick={onContinue}
-                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-indigo-600 transition"
+                disabled={isSubmitting}
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-indigo-600 transition flex items-center justify-center min-w-[120px]"
               >
-                {isFinalStep ? "Submit" : "Continue"}
+                {isSubmitting ? (
+                  <span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5"></span>
+                ) : isFinalStep ? (
+                  "Submit"
+                ) : (
+                  "Continue"
+                )}
               </button>
             </div>
           </div>
@@ -223,22 +215,18 @@
             step={step}
             totalSteps={totalSteps}
           >
-            <FileUploadField
-              label="W9 Document"
-              redirectUrl={initialValues.w9}
-            />
-            <FileUploadField
-              label="Check Image"
-              redirectUrl={initialValues.check}
-            />
-            <FileUploadField
-              label="Other Document 1"
-              redirectUrl={initialValues.doc1}
-            />
-            <FileUploadField
-              label="Other Document 2"
-              redirectUrl={initialValues.doc2}
-            />
+            <button className="w-full py-2 px-4 rounded bg-indigo-500 text-white">
+              Upload W9
+            </button>
+            <button className="w-full py-2 px-4 rounded bg-indigo-500 text-white">
+              Upload Check
+            </button>
+            <button className="w-full py-2 px-4 rounded bg-indigo-500 text-white">
+              Upload Doc1
+            </button>
+            <button className="w-full py-2 px-4 rounded bg-indigo-500 text-white">
+              Upload Doc2
+            </button>
           </FormWrapper>
         );
       }
@@ -384,14 +372,15 @@
         const [step, setStep] = React.useState(0);
         const [formValues, setFormValues] = React.useState({});
         const [userData, setUserData] = React.useState(null);
+        const [submitted, setSubmitted] = React.useState(false);
+        const [isSubmitting, setIsSubmitting] = React.useState(false);
 
         React.useEffect(() => {
-          fetch("http://localhost:3001/userData")
+          fetch(window.suiteletDataUrl)
             .then((res) => res.json())
             .then((data) => {
               setUserData(data);
-
-              const initialFormValues = {
+              setFormValues({
                 bankAccount: {
                   email: data.email || "",
                   paymentMethod: data.paymentMethod || "",
@@ -425,12 +414,10 @@
                   country: data.bankCountry || "",
                   zip: data.bankZip || "",
                 },
-              };
-
-              setFormValues(initialFormValues);
+              });
             })
             .catch((err) =>
-              console.error("Error fetching mock API data:", err)
+              console.error("Error fetching Suitelet data:", err)
             );
         }, []);
 
@@ -440,13 +427,46 @@
           setStep((prev) => prev + 1);
         };
 
+        const handleSubmit = () => {
+          setIsSubmitting(true);
+
+          //  Commented out real submission for testing
+          // fetch(window.submitUrl, {
+          //   method: "POST",
+          //   headers: { "Content-Type": "application/json" },
+          //   body: JSON.stringify(formValues)
+          // })
+          //   .then(res => res.ok ? res.json() : Promise.reject("Submission failed"))
+          //   .then(() => {
+          //     setSubmitted(true);
+          //     setIsSubmitting(false);
+          //   })
+          //   .catch(err => {
+          //     console.error("Error submitting:", err);
+          //     alert("Something went wrong.");
+          //     setIsSubmitting(false);
+          //   });
+
+          setTimeout(() => {
+            setSubmitted(true);
+            setStep(0); // reset back to beginning
+            setIsSubmitting(false);
+          }, 500);
+        };
+
         const totalSteps = 4;
 
         const renderStep = () => {
-          if (!userData)
+          if (!userData) return <p>Loading user data...</p>;
+          if (submitted) {
             return (
-              <p className="text-center text-gray-600">Loading user data...</p>
+              <div className="bg-white p-6 rounded-2xl shadow w-[720px]">
+                <pre className="text-sm bg-gray-100 p-4 rounded whitespace-pre-wrap">
+                  {JSON.stringify(formValues, null, 2)}
+                </pre>
+              </div>
             );
+          }
 
           switch (step) {
             case 0:
@@ -490,14 +510,20 @@
               );
             default:
               return (
-                <div className="bg-white p-6 rounded-2xl shadow w-[720px]">
-                  <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">
-                    All Done!
-                  </h2>
-                  <pre className="text-sm mt-4 bg-gray-100 p-4 rounded whitespace-pre-wrap">
+                <FormWrapper
+                  title="REVIEW & SUBMIT"
+                  onContinue={handleSubmit}
+                  onBack={handleBack}
+                  showBack
+                  step={step}
+                  totalSteps={totalSteps}
+                  isSubmitting={isSubmitting}
+                  hideStepCount={true}
+                >
+                  <pre className="text-sm bg-gray-100 p-4 rounded whitespace-pre-wrap">
                     {JSON.stringify(formValues, null, 2)}
                   </pre>
-                </div>
+                </FormWrapper>
               );
           }
         };
@@ -506,7 +532,11 @@
           <div className="w-full max-w-3xl mx-auto">
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-bold text-gray-800">
-                Welcome {userData?.name || "User"}, please enter your details
+                {submitted
+                  ? "Thank you for completing the form"
+                  : `Welcome ${
+                      userData?.name || "User"
+                    }, please enter your details`}
               </h1>
             </div>
             <div className="flex items-center justify-center">
