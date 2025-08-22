@@ -24,9 +24,65 @@
       };
     </script>
   </head>
-  <body class="bg-gray-100 p-6">
-    <div id="root"></div>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div id="root" class="w-full px-4 py-10"></div>
     <script type="text/babel">
+      async function fetchJsonWithGuard(
+        url,
+        { timeoutMs = 8000, ...init } = {}
+      ) {
+        if (!url || typeof url !== "string") {
+          throw new Error("Missing or invalid suiteletDataUrl");
+        }
+
+        // timeout via AbortController
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), timeoutMs);
+
+        let res, text;
+        try {
+          res = await fetch(url, {
+            credentials: "same-origin",
+            signal: controller.signal,
+            ...init,
+          });
+          text = await res.text(); // read once; we’ll decide how to parse
+        } catch (e) {
+          clearTimeout(t);
+          throw new Error(`Network/timeout error: ${e.message}`);
+        }
+        clearTimeout(t);
+
+        if (!res.ok) {
+          // show a small slice of body to help debug
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+        }
+
+        const contentType = (
+          res.headers.get("content-type") || ""
+        ).toLowerCase();
+        if (contentType.includes("application/json")) {
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error(`Invalid JSON from server: ${e.message}`);
+          }
+        }
+
+        // If not JSON, likely HTML (login/notice/error)
+        // Try a last-chance parse; if it fails, surface a helpful error.
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(
+            `Non-JSON response (likely HTML). First 200 chars:\n${text.slice(
+              0,
+              200
+            )}`
+          );
+        }
+      }
+
       function Field({
         label,
         name,
@@ -374,11 +430,14 @@
         const [userData, setUserData] = React.useState(null);
         const [submitted, setSubmitted] = React.useState(false);
         const [isSubmitting, setIsSubmitting] = React.useState(false);
+        const [errorMsg, setErrorMsg] = React.useState(null);
 
         React.useEffect(() => {
-          fetch(window.suiteletDataUrl)
-            .then((res) => res.json())
-            .then((data) => {
+          (async () => {
+            try {
+              const url = window.suiteletDataUrl; // defined in a <script> tag above
+              const data = await fetchJsonWithGuard(url);
+
               setUserData(data);
               setFormValues({
                 bankAccount: {
@@ -415,10 +474,21 @@
                   zip: data.bankZip || "",
                 },
               });
-            })
-            .catch((err) =>
-              console.error("Error fetching Suitelet data:", err)
-            );
+            } catch (err) {
+              console.error("Error fetching Suitelet data:", err);
+              setErrorMsg(err.message);
+
+              // Optional fallback to local mock if available:
+              // try {
+              //   const data = await fetchJsonWithGuard("http://localhost:3001/userData", { timeoutMs: 3000 });
+              //   setUserData(data);
+              //   // ... setFormValues exactly as above
+              //   setErrorMsg(null);
+              // } catch (fallbackErr) {
+              //   console.error("Fallback fetch failed:", fallbackErr);
+              // }
+            }
+          })();
         }, []);
 
         const handleBack = () => setStep((prev) => Math.max(prev - 1, 0));
@@ -538,7 +608,36 @@
                       userData?.name || "User"
                     }, please enter your details`}
               </h1>
+              {errorMsg && (
+                <p className="mt-2 text-sm text-red-600 whitespace-pre-wrap">
+                  {`Data fetch issue: ${errorMsg}\n• If this is a login or HTML response, make sure your Suitelet returns JSON and the deployment/permissions are correct.`}
+                </p>
+              )}
             </div>
+
+            {/* Later, before rendering steps: */}
+            {!userData && !errorMsg && <p>Loading user data...</p>}
+            {errorMsg && !userData && (
+              <div className="bg-white p-4 rounded shadow text-sm text-gray-700">
+                <p className="mb-2 font-medium">We couldn’t load your data.</p>
+                <ul className="list-disc ml-5 space-y-1">
+                  <li>Confirm the Suitelet URL and deployment status.</li>
+                  <li>
+                    Ensure the endpoint returns <code>application/json</code>{" "}
+                    (not HTML).
+                  </li>
+                  <li>
+                    If anonymous, set “Available without Login” and use external
+                    URL.
+                  </li>
+                  <li>
+                    If authenticated, use internal URL while logged in (same
+                    domain).
+                  </li>
+                </ul>
+              </div>
+            )}
+
             <div className="flex items-center justify-center">
               {renderStep()}
             </div>
