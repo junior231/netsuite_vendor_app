@@ -37,9 +37,11 @@
 
         // timeout via AbortController
         const controller = new AbortController();
-        const t = setTimeout(() => controller.abort(), timeoutMs);
+        const t = setTimeout(function () {
+          controller.abort();
+        }, timeoutMs);
 
-        let res, text;
+        var res, text;
         try {
           res = await fetch(url, {
             credentials: "same-origin",
@@ -49,23 +51,21 @@
           text = await res.text(); // read once; we’ll decide how to parse
         } catch (e) {
           clearTimeout(t);
-          throw new Error(`Network/timeout error: ${e.message}`);
+          throw new Error("Network/timeout error: " + e.message);
         }
         clearTimeout(t);
 
         if (!res.ok) {
           // show a small slice of body to help debug
-          throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+          throw new Error("HTTP " + res.status + ": " + text.slice(0, 200));
         }
 
-        const contentType = (
-          res.headers.get("content-type") || ""
-        ).toLowerCase();
-        if (contentType.includes("application/json")) {
+        var contentType = (res.headers.get("content-type") || "").toLowerCase();
+        if (contentType.indexOf("application/json") !== -1) {
           try {
             return JSON.parse(text);
           } catch (e) {
-            throw new Error(`Invalid JSON from server: ${e.message}`);
+            throw new Error("Invalid JSON from server: " + e.message);
           }
         }
 
@@ -73,12 +73,10 @@
         // Try a last-chance parse; if it fails, surface a helpful error.
         try {
           return JSON.parse(text);
-        } catch {
+        } catch (err) {
           throw new Error(
-            `Non-JSON response (likely HTML). First 200 chars:\n${text.slice(
-              0,
-              200
-            )}`
+            "Non-JSON response (likely HTML). First 200 chars:\n" +
+              text.slice(0, 200)
           );
         }
       }
@@ -604,13 +602,15 @@
               <h1 className="text-2xl font-bold text-gray-800">
                 {submitted
                   ? "Thank you for completing the form"
-                  : `Welcome ${
-                      userData?.name || "User"
-                    }, please enter your details`}
+                  : "Welcome " +
+                    (userData && userData.name ? userData.name : "User") +
+                    ", please enter your details"}
               </h1>
               {errorMsg && (
                 <p className="mt-2 text-sm text-red-600 whitespace-pre-wrap">
-                  {`Data fetch issue: ${errorMsg}\n• If this is a login or HTML response, make sure your Suitelet returns JSON and the deployment/permissions are correct.`}
+                  {"Data fetch issue: " +
+                    errorMsg +
+                    "\n• If this is a login or HTML response, make sure your Suitelet returns JSON and the deployment/permissions are correct."}
                 </p>
               )}
             </div>
